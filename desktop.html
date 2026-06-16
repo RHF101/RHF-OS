@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RHF OS — Desktop</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg:       #08090d;
+    --panel:    #0d0f18;
+    --border:   #1a1f35;
+    --accent:   #00e5ff;
+    --accent2:  #7b2fff;
+    --green:    #00ff88;
+    --red:      #ff3366;
+    --text:     #c8d0e8;
+    --dim:      #4a5070;
+    --glow:     0 0 12px rgba(0,229,255,0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(123,47,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,229,255,0.05) 0%, transparent 50%);
+  }
+
+  /* ── TASKBAR TOP */
+  #taskbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    background: rgba(13,15,24,0.95);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+  }
+
+  #taskbar .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+
+  #taskbar .sep { width: 1px; height: 20px; background: var(--border); }
+
+  #taskbar .tb-btn {
+    font-size: 11px;
+    color: var(--dim);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  #taskbar .tb-btn:hover {
+    color: var(--accent);
+    border-color: var(--border);
+    background: rgba(0,229,255,0.05);
+  }
+
+  #taskbar .spacer { flex: 1; }
+
+  #clock {
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  #status-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.blue  { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation-delay: 0.5s; }
+  .dot.purple{ background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation-delay: 1s; }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; } 50% { opacity:0.3; }
+  }
+
+  /* ── DESKTOP AREA */
+  #desktop {
+    position: fixed;
+    top: 40px; left: 0; right: 0; bottom: 48px;
+    padding: 20px;
+    overflow: hidden;
+  }
+
+  /* ── GRID ICONS */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 80px);
+    gap: 16px;
+    padding: 8px;
+  }
+
+  .icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    width: 80px;
+  }
+  .icon:hover {
+    background: rgba(0,229,255,0.06);
+    border-color: rgba(0,229,255,0.2);
+  }
+  .icon:active { transform: scale(0.92); }
+
+  .icon-img {
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px;
+    font-size: 22px;
+    border: 1px solid var(--border);
+  }
+  .icon-img.cyan   { background: rgba(0,229,255,0.1); box-shadow: 0 0 10px rgba(0,229,255,0.15); }
+  .icon-img.green  { background: rgba(0,255,136,0.1); box-shadow: 0 0 10px rgba(0,255,136,0.15); }
+  .icon-img.purple { background: rgba(123,47,255,0.1); box-shadow: 0 0 10px rgba(123,47,255,0.15); }
+  .icon-img.red    { background: rgba(255,51,102,0.1); box-shadow: 0 0 10px rgba(255,51,102,0.15); }
+  .icon-img.orange { background: rgba(255,140,0,0.1); box-shadow: 0 0 10px rgba(255,140,0,0.15); }
+
+  .icon-label {
+    font-size: 10px;
+    color: var(--text);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* ── WINDOWS */
+  .window {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,229,255,0.05);
+    min-width: 320px;
+    min-height: 200px;
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+    resize: both;
+    overflow: hidden;
+  }
+  .window.active { display: flex; }
+
+  .win-header {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    height: 36px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--border);
+    cursor: move;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .win-title {
+    font-size: 11px;
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    flex: 1;
+  }
+  .win-controls { display: flex; gap: 6px; }
+  .win-btn {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s;
+  }
+  .win-btn:hover { opacity: 0.7; }
+  .win-btn.close  { background: var(--red); }
+  .win-btn.min    { background: #ffcc00; }
+  .win-btn.max    { background: var(--green); }
+
+  .win-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .win-body::-webkit-scrollbar { width: 4px; }
+  .win-body::-webkit-scrollbar-track { background: transparent; }
+  .win-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── TERMINAL WINDOW */
+  #term-output {
+    font-size: 12px;
+    color: var(--green);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 8px;
+  }
+  #term-input-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #term-prompt { color: var(--accent); font-size: 12px; white-space: nowrap; }
+  #term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    caret-color: var(--green);
+  }
+
+  /* ── BROWSER WINDOW */
+  #browser-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  #browser-url {
+    flex: 1;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+  }
+  #browser-url:focus { border-color: var(--accent); }
+  .browser-go {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+  #browser-frame {
+    width: 100%;
+    height: calc(100% - 48px);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  /* ── FILE MANAGER */
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+  }
+  .file-item:hover {
+    background: rgba(0,229,255,0.05);
+    border-color: var(--border);
+  }
+  .file-icon { font-size: 16px; }
+  .file-name { flex: 1; color: var(--text); }
+  .file-size { color: var(--dim); font-size: 10px; }
+
+  /* ── SYSTEM INFO */
+  .info-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .info-card h4 {
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    font-family: 'Orbitron', sans-serif;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .info-row span:last-child { color: var(--green); }
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* ── TASKBAR BOTTOM */
+  #dock {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 48px;
+    background: rgba(13,15,24,0.96);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+  }
+
+  .dock-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+  .dock-btn:hover {
+    background: rgba(0,229,255,0.08);
+    border-color: rgba(0,229,255,0.2);
+  }
+  .dock-btn .d-icon { font-size: 18px; }
+  .dock-btn .d-label { font-size: 9px; color: var(--dim); }
+
+  /* ── NOTIFICATIONS */
+  #notif-area {
+    position: fixed;
+    top: 48px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 900;
+    pointer-events: none;
+  }
+  .notif {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text);
+    min-width: 220px;
+    animation: slideIn 0.3s ease;
+    pointer-events: all;
+  }
+  .notif .n-title { color: var(--accent); font-size: 10px; margin-bottom: 2px; }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  /* CONTEXT MENU */
+  #ctx-menu {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    z-index: 2000;
+    display: none;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .ctx-item {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ctx-item:hover { background: rgba(0,229,255,0.08); color: var(--accent); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* BOOT SCREEN */
+  #boot-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  #boot-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(0,229,255,0.6);
+    letter-spacing: 6px;
+    animation: flicker 0.1s step-end 3;
+  }
+  @keyframes flicker { 0%,100%{opacity:1} 50%{opacity:0} }
+  #boot-sub {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 4px;
+  }
+  #boot-bar-wrap {
+    width: 240px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #boot-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.1s linear;
+  }
+  #boot-log {
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div id="boot-logo">RHF OS</div>
+  <div id="boot-sub">BUILT BY ZERO · v1.0</div>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <div id="boot-log">Initializing kernel...</div>
+</div>
+
+<!-- TASKBAR TOP -->
+<div id="taskbar">
+  <div class="logo" onclick="showNotif('RHF OS','System ready.')">⬡ RHF OS</div>
+  <div class="sep"></div>
+  <div class="tb-btn" onclick="openWindow('file-win')">📁 Files</div>
+  <div class="tb-btn" onclick="openWindow('term-win')">⬛ Terminal</div>
+  <div class="tb-btn" onclick="openWindow('browser-win')">🌐 Browser</div>
+  <div class="tb-btn" onclick="openWindow('sys-win')">⚙️ System</div>
+  <div class="tb-btn" onclick="openAdminPanel()">🔒 Admin</div>
+  <div class="spacer"></div>
+  <div id="status-dots">
+    <div class="dot green" title="Network OK"></div>
+    <div class="dot blue"  title="Firebase OK"></div>
+    <div class="dot purple" title="RHF Core OK"></div>
+  </div>
+  <div class="sep"></div>
+  <div id="clock">--:--:--</div>
+</div>
+
+<!-- DESKTOP -->
+<div id="desktop">
+  <div class="icon-grid">
+    <div class="icon" ondblclick="openWindow('file-win')">
+      <div class="icon-img cyan">📁</div>
+      <div class="icon-label">Files</div>
+    </div>
+    <div class="icon" ondblclick="openWindow('term-win')">
+      <div class="icon-img green">⬛</div>
+      <div class="icon-label">Terminal</div>
+    </div>
+    <div class="icon" ondblclick="openWindow('browser-win')">
+      <div class="icon-img cyan">🌐</div>
+      <div class="icon-label">Browser</div>
+    </div>
+    <div class="icon" ondblclick="openWindow('sys-win')">
+      <div class="icon-img purple">⚙️</div>
+      <div class="icon-label">System</div>
+    </div>
+    <div class="icon" ondblclick="openAdminPanel()">
+      <div class="icon-img red">🔒</div>
+      <div class="icon-label">Admin</div>
+    </div>
+    <div class="icon" ondblclick="openWindow('notes-win')">
+      <div class="icon-img orange">📝</div>
+      <div class="icon-label">Notes</div>
+    </div>
+  </div>
+</div>
+
+<!-- WINDOWS -->
+
+<!-- TERMINAL -->
+<div class="window" id="term-win" style="left:80px;top:80px;width:560px;height:340px;">
+  <div class="win-header" onmousedown="dragStart(event,'term-win')">
+    <span class="win-title">TERMINAL</span>
+    <div class="win-controls">
+      <div class="win-btn min" onclick="closeWindow('term-win')"></div>
+      <div class="win-btn max" onclick="maxWindow('term-win')"></div>
+      <div class="win-btn close" onclick="closeWindow('term-win')"></div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:12px;" onclick="document.getElementById('term-input').focus()">
+    <div id="term-output">RHF OS Terminal v1.0
+Type 'help' for commands.
+</div>
+    <div id="term-input-line">
+      <span id="term-prompt">rhf@zero:~$ </span>
+      <input id="term-input" type="text" autocomplete="off" spellcheck="false"
+        onkeydown="termKeyDown(event)" autofocus>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSER -->
+<div class="window" id="browser-win" style="left:120px;top:60px;width:700px;height:480px;">
+  <div class="win-header" onmousedown="dragStart(event,'browser-win')">
+    <span class="win-title">BROWSER</span>
+    <div class="win-controls">
+      <div class="win-btn min" onclick="closeWindow('browser-win')"></div>
+      <div class="win-btn max" onclick="maxWindow('browser-win')"></div>
+      <div class="win-btn close" onclick="closeWindow('browser-win')"></div>
+    </div>
+  </div>
+  <div class="win-body" style="display:flex;flex-direction:column;height:calc(100% - 36px);">
+    <div id="browser-bar">
+      <input id="browser-url" type="text" value="https://www.google.com"
+        onkeydown="if(event.key==='Enter') loadBrowser()">
+      <button class="browser-go" onclick="loadBrowser()">GO</button>
+    </div>
+    <iframe id="browser-frame" src="https://www.google.com" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  </div>
+</div>
+
+<!-- FILE MANAGER -->
+<div class="window" id="file-win" style="left:160px;top:100px;width:460px;height:360px;">
+  <div class="win-header" onmousedown="dragStart(event,'file-win')">
+    <span class="win-title">FILE MANAGER</span>
+    <div class="win-controls">
+      <div class="win-btn min" onclick="closeWindow('file-win')"></div>
+      <div class="win-btn max" onclick="maxWindow('file-win')"></div>
+      <div class="win-btn close" onclick="closeWindow('file-win')"></div>
+    </div>
+  </div>
+  <div class="win-body">
+    <div class="file-item"><span class="file-icon">📁</span><span class="file-name">rhfos/</span><span class="file-size">DIR</span></div>
+    <div class="file-item"><span class="file-icon">📁</span><span class="file-name">apps/</span><span class="file-size">DIR</span></div>
+    <div class="file-item"><span class="file-icon">📁</span><span class="file-name">data/</span><span class="file-size">DIR</span></div>
+    <div class="file-item"><span class="file-icon">📁</span><span class="file-name">logs/</span><span class="file-size">DIR</span></div>
+    <div class="file-item"><span class="file-icon">📄</span><span class="file-name">desktop.html</span><span class="file-size">42 KB</span></div>
+    <div class="file-item"><span class="file-icon">📄</span><span class="file-name">admin.html</span><span class="file-size">28 KB</span></div>
+    <div class="file-item"><span class="file-icon">🔧</span><span class="file-name">install.sh</span><span class="file-size">3 KB</span></div>
+    <div class="file-item"><span class="file-icon">🔧</span><span class="file-name">rhfos.sh</span><span class="file-size">4 KB</span></div>
+  </div>
+</div>
+
+<!-- SYSTEM INFO -->
+<div class="window" id="sys-win" style="left:200px;top:80px;width:360px;height:380px;">
+  <div class="win-header" onmousedown="dragStart(event,'sys-win')">
+    <span class="win-title">SYSTEM INFO</span>
+    <div class="win-controls">
+      <div class="win-btn min" onclick="closeWindow('sys-win')"></div>
+      <div class="win-btn max" onclick="maxWindow('sys-win')"></div>
+      <div class="win-btn close" onclick="closeWindow('sys-win')"></div>
+    </div>
+  </div>
+  <div class="win-body">
+    <div class="info-card">
+      <h4>SYSTEM</h4>
+      <div class="info-row"><span>OS</span><span>RHF OS v1.0</span></div>
+      <div class="info-row"><span>Build</span><span>by ZERO</span></div>
+      <div class="info-row"><span>Kernel</span><span>Linux (Termux)</span></div>
+      <div class="info-row"><span>Arch</span><span>ARM64</span></div>
+    </div>
+    <div class="info-card">
+      <h4>RESOURCES</h4>
+      <div class="info-row"><span>CPU</span><span id="cpu-val">--</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="cpu-bar" style="width:0%"></div></div>
+      <br>
+      <div class="info-row"><span>Memory</span><span id="mem-val">--</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="mem-bar" style="width:0%"></div></div>
+    </div>
+    <div class="info-card">
+      <h4>NETWORK</h4>
+      <div class="info-row"><span>Status</span><span>🟢 Connected</span></div>
+      <div class="info-row"><span>Firebase</span><span>🟢 Online</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES -->
+<div class="window" id="notes-win" style="left:240px;top:100px;width:400px;height:320px;">
+  <div class="win-header" onmousedown="dragStart(event,'notes-win')">
+    <span class="win-title">NOTES</span>
+    <div class="win-controls">
+      <div class="win-btn min" onclick="closeWindow('notes-win')"></div>
+      <div class="win-btn max" onclick="maxWindow('notes-win')"></div>
+      <div class="win-btn close" onclick="closeWindow('notes-win')"></div>
+    </div>
+  </div>
+  <div class="win-body" style="padding:0;">
+    <textarea id="notes-area" style="width:100%;height:100%;background:transparent;border:none;outline:none;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:14px;resize:none;line-height:1.8;" placeholder="Type your notes here..."></textarea>
+  </div>
+</div>
+
+<!-- DOCK BOTTOM -->
+<div id="dock">
+  <div class="dock-btn" ondblclick="openWindow('term-win')"><div class="d-icon">⬛</div><div class="d-label">Terminal</div></div>
+  <div class="dock-btn" ondblclick="openWindow('browser-win')"><div class="d-icon">🌐</div><div class="d-label">Browser</div></div>
+  <div class="dock-btn" ondblclick="openWindow('file-win')"><div class="d-icon">📁</div><div class="d-label">Files</div></div>
+  <div class="dock-btn" ondblclick="openWindow('sys-win')"><div class="d-icon">⚙️</div><div class="d-label">System</div></div>
+  <div class="dock-btn" ondblclick="openWindow('notes-win')"><div class="d-icon">📝</div><div class="d-label">Notes</div></div>
+  <div class="dock-btn" ondblclick="openAdminPanel()"><div class="d-icon">🔒</div><div class="d-label">Admin</div></div>
+</div>
+
+<!-- NOTIFICATION AREA -->
+<div id="notif-area"></div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="showNotif('Desktop','Refresh complete.')">🔄 Refresh</div>
+  <div class="ctx-item" onclick="openWindow('term-win')">⬛ Open Terminal</div>
+  <div class="ctx-item" onclick="openWindow('file-win')">📁 Open Files</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="openWindow('sys-win')">⚙️ System Info</div>
+  <div class="ctx-item" onclick="openAdminPanel()">🔒 Admin Panel</div>
+</div>
+
+<script>
+// ── BOOT SEQUENCE
+const bootLogs = [
+  'Initializing kernel...',
+  'Loading RHF Core modules...',
+  'Mounting filesystem...',
+  'Starting network services...',
+  'Connecting to Firebase...',
+  'Loading desktop environment...',
+  'Starting RHF OS...'
+];
+
+let bootIdx = 0;
+const bootBar  = document.getElementById('boot-bar');
+const bootLog  = document.getElementById('boot-log');
+const bootScr  = document.getElementById('boot-screen');
+
+function bootStep() {
+  if (bootIdx >= bootLogs.length) {
+    bootScr.style.transition = 'opacity 0.5s';
+    bootScr.style.opacity = '0';
+    setTimeout(() => { bootScr.style.display = 'none'; showNotif('RHF OS','System booted. Welcome, ZERO.'); }, 500);
+    return;
+  }
+  bootLog.textContent = bootLogs[bootIdx];
+  bootBar.style.width = ((bootIdx + 1) / bootLogs.length * 100) + '%';
+  bootIdx++;
+  setTimeout(bootStep, 350);
+}
+setTimeout(bootStep, 400);
+
+// ── CLOCK
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('id-ID', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── FAKE CPU/MEM
+function updateStats() {
+  const cpu = Math.floor(Math.random() * 30 + 10);
+  const mem = Math.floor(Math.random() * 20 + 40);
+  document.getElementById('cpu-val').textContent = cpu + '%';
+  document.getElementById('mem-val').textContent = mem + '%';
+  document.getElementById('cpu-bar').style.width = cpu + '%';
+  document.getElementById('mem-bar').style.width = mem + '%';
+}
+setInterval(updateStats, 2000);
+updateStats();
+
+// ── WINDOW MANAGER
+let zTop = 100;
+function openWindow(id) {
+  const w = document.getElementById(id);
+  w.classList.add('active');
+  w.style.zIndex = ++zTop;
+}
+function closeWindow(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function maxWindow(id) {
+  const w = document.getElementById(id);
+  if (w.dataset.maxed === '1') {
+    w.style.left   = w.dataset.ox;
+    w.style.top    = w.dataset.oy;
+    w.style.width  = w.dataset.ow;
+    w.style.height = w.dataset.oh;
+    w.dataset.maxed = '0';
+  } else {
+    w.dataset.ox = w.style.left;
+    w.dataset.oy = w.style.top;
+    w.dataset.ow = w.style.width;
+    w.dataset.oh = w.style.height;
+    w.style.left   = '0';
+    w.style.top    = '40px';
+    w.style.width  = '100vw';
+    w.style.height = 'calc(100vh - 88px)';
+    w.dataset.maxed = '1';
+  }
+}
+
+// ── DRAG
+let dragWin = null, dragOffX = 0, dragOffY = 0;
+function dragStart(e, id) {
+  dragWin = document.getElementById(id);
+  dragWin.style.zIndex = ++zTop;
+  dragOffX = e.clientX - dragWin.getBoundingClientRect().left;
+  dragOffY = e.clientY - dragWin.getBoundingClientRect().top;
+  document.onmousemove = dragMove;
+  document.onmouseup   = dragEnd;
+}
+function dragMove(e) {
+  if (!dragWin) return;
+  dragWin.style.left = (e.clientX - dragOffX) + 'px';
+  dragWin.style.top  = (e.clientY - dragOffY) + 'px';
+}
+function dragEnd() {
+  dragWin = null;
+  document.onmousemove = null;
+  document.onmouseup   = null;
+}
+
+// ── TERMINAL
+const cmds = {
+  help: `Commands: help, clear, ls, uname, whoami, date, neofetch, reboot, shutdown`,
+  ls:   `apps/  data/  logs/  desktop.html  admin.html  install.sh  rhfos.sh`,
+  uname:`Linux rhf-os 6.1.0-rhf #1 SMP ARM64 GNU/Linux`,
+  whoami: `zero`,
+  date: () => new Date().toString(),
+  clear: '__clear__',
+  neofetch: `
+  ██████╗ ██╗  ██╗███████╗
+  ██╔══██╗██║  ██║██╔════╝   OS: RHF OS v1.0
+  ██████╔╝███████║█████╗     Host: Android/Termux
+  ██╔══██╗██╔══██║██╔══╝     Kernel: Linux ARM64
+  ██║  ██║██║  ██║██║        Shell: bash
+  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝        Builder: ZERO
+                              Theme: RHF Dark`,
+  reboot: '__reboot__',
+  shutdown: '__shutdown__',
+};
+
+let termHistory = [], termHistIdx = -1;
+
+function termKeyDown(e) {
+  const input = document.getElementById('term-input');
+  if (e.key === 'Enter') {
+    const cmd = input.value.trim();
+    const out  = document.getElementById('term-output');
+    out.textContent += `rhf@zero:~$ ${cmd}\n`;
+    if (cmd) {
+      termHistory.unshift(cmd);
+      termHistIdx = -1;
+      const fn = cmds[cmd];
+      if (fn === '__clear__') {
+        out.textContent = '';
+      } else if (fn === '__reboot__') {
+        out.textContent += 'Rebooting RHF OS...\n';
+        setTimeout(() => location.reload(), 1000);
+      } else if (fn === '__shutdown__') {
+        out.textContent += 'Shutting down...\n';
+        setTimeout(() => { document.body.style.background='#000'; document.body.innerHTML='<div style="color:#00ff88;font-family:monospace;padding:40px">RHF OS shutdown. Goodbye.</div>'; }, 800);
+      } else if (typeof fn === 'function') {
+        out.textContent += fn() + '\n';
+      } else if (fn) {
+        out.textContent += fn + '\n';
+      } else {
+        out.textContent += `bash: ${cmd}: command not found\n`;
+      }
+    }
+    out.textContent += '\n';
+    input.value = '';
+    document.querySelector('.win-body').scrollTop = 99999;
+  } else if (e.key === 'ArrowUp') {
+    termHistIdx = Math.min(termHistIdx + 1, termHistory.length - 1);
+    input.value = termHistory[termHistIdx] || '';
+  } else if (e.key === 'ArrowDown') {
+    termHistIdx = Math.max(termHistIdx - 1, -1);
+    input.value = termHistIdx === -1 ? '' : termHistory[termHistIdx];
+  }
+}
+
+// ── BROWSER
+function loadBrowser() {
+  const url = document.getElementById('browser-url').value;
+  let src = url.startsWith('http') ? url : 'https://' + url;
+  document.getElementById('browser-frame').src = src;
+}
+
+// ── ADMIN PANEL
+function openAdminPanel() {
+  window.open('admin.html', '_blank');
+}
+
+// ── NOTIFICATIONS
+function showNotif(title, msg) {
+  const area = document.getElementById('notif-area');
+  const n = document.createElement('div');
+  n.className = 'notif';
+  n.innerHTML = `<div class="n-title">● ${title}</div>${msg}`;
+  area.appendChild(n);
+  setTimeout(() => n.remove(), 4000);
+}
+
+// ── CONTEXT MENU
+document.getElementById('desktop').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const m = document.getElementById('ctx-menu');
+  m.style.display = 'block';
+  m.style.left = e.clientX + 'px';
+  m.style.top  = e.clientY + 'px';
+});
+document.addEventListener('click', () => {
+  document.getElementById('ctx-menu').style.display = 'none';
+});
+
+// ── NOTES persistence
+const notesArea = document.getElementById('notes-area');
+notesArea.value = localStorage.getItem('rhf-notes') || '';
+notesArea.addEventListener('input', () => localStorage.setItem('rhf-notes', notesArea.value));
+
+// Boot notif
+setTimeout(() => showNotif('RHF OS', 'Double-click icons to open apps.'), 3200);
+</script>
+</body>
+</html>

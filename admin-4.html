@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>RHF OS — Admin Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg:     #06070d;
+    --panel:  #0c0e1a;
+    --border: #161b30;
+    --accent: #ff3366;
+    --cyan:   #00e5ff;
+    --green:  #00ff88;
+    --purple: #7b2fff;
+    --text:   #c8d0e8;
+    --dim:    #3a4060;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* TOPBAR */
+  #topbar {
+    height: 48px;
+    background: rgba(12,14,26,0.98);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: 0 0 12px rgba(255,51,102,0.5);
+  }
+  .badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  .spacer { flex: 1; }
+  #admin-clock { font-size: 11px; color: var(--cyan); }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--green);
+    padding: 4px 10px;
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 20px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* LAYOUT */
+  #layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    min-height: calc(100vh - 48px);
+  }
+
+  /* SIDEBAR */
+  #sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+  }
+  .side-section {
+    padding: 8px 16px 4px;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-top: 8px;
+  }
+  .side-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .side-item:hover { background: rgba(255,51,102,0.05); color: var(--accent); border-left-color: var(--accent); }
+  .side-item.active { background: rgba(255,51,102,0.08); color: var(--accent); border-left-color: var(--accent); }
+  .side-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* MAIN */
+  #main { padding: 24px; overflow-y: auto; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+  }
+  .page-sub { font-size: 11px; color: var(--dim); margin-bottom: 24px; }
+
+  /* STAT CARDS */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+  }
+  .stat-label { font-size: 10px; color: var(--dim); letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--cyan); font-family: 'Orbitron', sans-serif; }
+  .stat-change { font-size: 10px; color: var(--green); margin-top: 4px; }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-head {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .table-head h3 { font-size: 12px; color: var(--accent); font-family: 'Orbitron', sans-serif; letter-spacing: 1px; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: rgba(0,0,0,0.3);
+    padding: 10px 14px;
+    font-size: 10px;
+    color: var(--dim);
+    text-align: left;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(22,27,48,0.5);
+  }
+  tr:hover td { background: rgba(255,51,102,0.03); }
+  tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  .tag.online  { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .tag.offline { background: rgba(255,51,102,0.15); color: var(--accent); border: 1px solid rgba(255,51,102,0.3); }
+  .tag.admin   { background: rgba(123,47,255,0.15); color: var(--purple); border: 1px solid rgba(123,47,255,0.3); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    border: none;
+    transition: all 0.15s;
+    font-weight: 700;
+  }
+  .btn-red    { background: var(--accent); color: #fff; }
+  .btn-red:hover { opacity: 0.85; }
+  .btn-cyan   { background: var(--cyan); color: var(--bg); }
+  .btn-cyan:hover { opacity: 0.85; }
+  .btn-ghost  { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 10px; color: var(--dim); margin-bottom: 6px; display: block; letter-spacing: 1px; }
+  .form-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  /* LOG FEED */
+  #log-feed {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    height: 200px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 2;
+  }
+  .log-line { display: flex; gap: 10px; }
+  .log-time { color: var(--dim); flex-shrink: 0; }
+  .log-msg  { color: var(--green); }
+  .log-msg.warn { color: #ffcc00; }
+  .log-msg.err  { color: var(--accent); }
+
+  /* TERMINAL IN ADMIN */
+  #admin-term {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 12px;
+    min-height: 200px;
+    color: var(--green);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+  }
+  #admin-term-input-wrap { display: flex; align-items: center; gap: 8px; }
+  #admin-term-prompt { color: var(--accent); font-size: 12px; white-space: nowrap; }
+  #admin-term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* BROADCAST BOX */
+  .broadcast-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .broadcast-box h3 {
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .flex-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">RHF OS</div>
+  <div class="badge">ADMIN</div>
+  <div class="spacer"></div>
+  <div class="status-pill"><div class="status-dot"></div>SYSTEM ONLINE</div>
+  <div id="admin-clock">--:--:--</div>
+</div>
+
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="side-section">OVERVIEW</div>
+    <div class="side-item active" onclick="showPage('dashboard')">📊 Dashboard</div>
+    <div class="side-item" onclick="showPage('users')">👥 Users <span class="side-badge">3</span></div>
+    <div class="side-item" onclick="showPage('logs')">📋 System Logs</div>
+
+    <div class="side-section">CONTROL</div>
+    <div class="side-item" onclick="showPage('terminal')">⬛ Remote Terminal</div>
+    <div class="side-item" onclick="showPage('broadcast')">📡 Broadcast</div>
+    <div class="side-item" onclick="showPage('settings')">⚙️ Settings</div>
+
+    <div class="side-section">SYSTEM</div>
+    <div class="side-item" onclick="rebootOS()">🔄 Reboot OS</div>
+    <div class="side-item" onclick="window.close()">⛔ Exit Admin</div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">DASHBOARD</div>
+      <div class="page-sub">RHF OS System Overview</div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">USERS ONLINE</div>
+          <div class="stat-value" id="stat-users">1</div>
+          <div class="stat-change">↑ Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">UPTIME</div>
+          <div class="stat-value" id="stat-uptime">00:00</div>
+          <div class="stat-change">Since boot</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">CPU LOAD</div>
+          <div class="stat-value" id="stat-cpu">--</div>
+          <div class="stat-change">ARM64</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">PROCESSES</div>
+          <div class="stat-value">12</div>
+          <div class="stat-change">Running</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><h3>ACTIVE SESSIONS</h3></div>
+        <table>
+          <thead><tr><th>USER</th><th>ROLE</th><th>STATUS</th><th>DEVICE</th><th>ACTION</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>ZERO</td>
+              <td><span class="tag admin">ADMIN</span></td>
+              <td><span class="tag online">ONLINE</span></td>
+              <td>Android / Termux</td>
+              <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;">View</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><h3>RUNNING PROCESSES</h3></div>
+        <table>
+          <thead><tr><th>PID</th><th>NAME</th><th>STATUS</th><th>CPU</th></tr></thead>
+          <tbody id="proc-table">
+            <tr><td>1</td><td>rhfos-core</td><td><span class="tag online">RUNNING</span></td><td>0.1%</td></tr>
+            <tr><td>2</td><td>x11-server</td><td><span class="tag online">RUNNING</span></td><td>1.2%</td></tr>
+            <tr><td>3</td><td>openbox-wm</td><td><span class="tag online">RUNNING</span></td><td>0.3%</td></tr>
+            <tr><td>4</td><td>firefox</td><td><span class="tag online">RUNNING</span></td><td>8.4%</td></tr>
+            <tr><td>5</td><td>rhf-admin</td><td><span class="tag online">RUNNING</span></td><td>0.2%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="page-title">USERS</div>
+      <div class="page-sub">Manage RHF OS user accounts</div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <h3>USER ACCOUNTS</h3>
+          <div class="spacer"></div>
+          <button class="btn btn-red" onclick="addUser()">+ Add User</button>
+        </div>
+        <table>
+          <thead><tr><th>USERNAME</th><th>ROLE</th><th>STATUS</th><th>LAST SEEN</th><th>ACTION</th></tr></thead>
+          <tbody id="user-table">
+            <tr>
+              <td>zero</td>
+              <td><span class="tag admin">ADMIN</span></td>
+              <td><span class="tag online">ONLINE</span></td>
+              <td>Now</td>
+              <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;">Edit</button></td>
+            </tr>
+            <tr>
+              <td>user01</td>
+              <td><span class="tag online">USER</span></td>
+              <td><span class="tag offline">OFFLINE</span></td>
+              <td>2h ago</td>
+              <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;">Edit</button></td>
+            </tr>
+            <tr>
+              <td>user02</td>
+              <td><span class="tag online">USER</span></td>
+              <td><span class="tag offline">OFFLINE</span></td>
+              <td>1d ago</td>
+              <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;">Edit</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <div class="page-title">SYSTEM LOGS</div>
+      <div class="page-sub">Real-time RHF OS event log</div>
+      <div class="table-wrap" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:11px;color:var(--dim);">Live Feed</span>
+          <button class="btn btn-ghost" onclick="clearLogs()">Clear</button>
+        </div>
+        <div id="log-feed"></div>
+      </div>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="page" id="page-terminal">
+      <div class="page-title">REMOTE TERMINAL</div>
+      <div class="page-sub">Execute commands on RHF OS</div>
+      <div id="admin-term">RHF OS Admin Terminal
+Connected as: ZERO (admin)
+Type 'help' for available commands.
+
+</div>
+      <div id="admin-term-input-wrap">
+        <span id="admin-term-prompt">root@rhfos:~# </span>
+        <input id="admin-term-input" type="text" autocomplete="off" spellcheck="false"
+          onkeydown="adminTermKey(event)" placeholder="Enter command...">
+      </div>
+    </div>
+
+    <!-- BROADCAST -->
+    <div class="page" id="page-broadcast">
+      <div class="page-title">BROADCAST</div>
+      <div class="page-sub">Send system messages to all users</div>
+      <div class="broadcast-box">
+        <h3>SYSTEM BROADCAST</h3>
+        <div class="form-group">
+          <label class="form-label">MESSAGE TYPE</label>
+          <select class="form-input" id="bc-type">
+            <option value="info">INFO</option>
+            <option value="warn">WARNING</option>
+            <option value="alert">ALERT</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">MESSAGE</label>
+          <textarea class="form-input" id="bc-msg" rows="3" placeholder="Enter message to broadcast..."></textarea>
+        </div>
+        <div class="flex-row">
+          <button class="btn btn-red" onclick="sendBroadcast()">📡 Send Broadcast</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('bc-msg').value=''">Clear</button>
+        </div>
+        <div id="bc-result" style="margin-top:12px;font-size:11px;color:var(--green);"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">SETTINGS</div>
+      <div class="page-sub">RHF OS Configuration</div>
+      <div class="broadcast-box">
+        <h3>SYSTEM CONFIG</h3>
+        <div class="form-group">
+          <label class="form-label">OS NAME</label>
+          <input class="form-input" type="text" value="RHF OS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">VERSION</label>
+          <input class="form-input" type="text" value="1.0.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ADMIN PASSWORD</label>
+          <input class="form-input" type="password" placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">FIREBASE URL</label>
+          <input class="form-input" type="text" placeholder="https://your-project.firebaseio.com">
+        </div>
+        <div class="flex-row">
+          <button class="btn btn-cyan" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="btn btn-ghost">Reset Default</button>
+        </div>
+        <div id="settings-result" style="margin-top:12px;font-size:11px;color:var(--green);"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ── CLOCK
+function tick() {
+  document.getElementById('admin-clock').textContent =
+    new Date().toLocaleTimeString('id-ID',{hour12:false});
+}
+setInterval(tick,1000); tick();
+
+// ── UPTIME
+let bootTime = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now()-bootTime)/1000);
+  const m = Math.floor(s/60), sec = s%60;
+  document.getElementById('stat-uptime').textContent =
+    String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+},1000);
+
+// ── CPU fake
+setInterval(() => {
+  document.getElementById('stat-cpu').textContent = Math.floor(Math.random()*30+5)+'%';
+},2000);
+
+// ── NAVIGATION
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.side-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── LOGS
+const logFeed = document.getElementById('log-feed');
+const logEvents = [
+  ['INFO','RHF OS booted successfully'],
+  ['INFO','X11 server started on :0'],
+  ['INFO','Openbox WM loaded'],
+  ['INFO','Firefox browser ready'],
+  ['INFO','Admin panel connected'],
+  ['WARN','Low memory detected: 512MB'],
+  ['INFO','User ZERO logged in'],
+  ['INFO','Desktop environment loaded'],
+];
+function addLog(type, msg) {
+  const now = new Date().toLocaleTimeString('id-ID',{hour12:false});
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  const cls = type==='WARN'?'warn':type==='ERR'?'err':'';
+  div.innerHTML = `<span class="log-time">[${now}]</span><span class="log-msg ${cls}">[${type}] ${msg}</span>`;
+  logFeed.appendChild(div);
+  logFeed.scrollTop = logFeed.scrollHeight;
+}
+logEvents.forEach((e,i)=>setTimeout(()=>addLog(e[0],e[1]),i*300));
+setInterval(()=>{
+  const msgs=[
+    ['INFO','Heartbeat OK'],
+    ['INFO','Memory usage: '+Math.floor(Math.random()*30+40)+'%'],
+    ['INFO','Network: connected'],
+  ];
+  const m=msgs[Math.floor(Math.random()*msgs.length)];
+  addLog(m[0],m[1]);
+},5000);
+
+function clearLogs() { logFeed.innerHTML=''; addLog('INFO','Log cleared by admin'); }
+
+// ── ADMIN TERMINAL
+const adminCmds = {
+  help: 'Commands: help, clear, ps, uptime, whoami, reboot, users, sysinfo',
+  ps: 'PID  NAME           STATUS\n1    rhfos-core     running\n2    x11-server     running\n3    openbox        running\n4    firefox        running',
+  uptime: ()=>{const s=Math.floor((Date.now()-bootTime)/1000);return `up ${Math.floor(s/60)}m ${s%60}s`;},
+  whoami: 'root (admin)',
+  users: 'zero [admin] - ONLINE\nuser01 - OFFLINE\nuser02 - OFFLINE',
+  sysinfo: 'RHF OS v1.0 | Linux ARM64 | Termux | by ZERO',
+  clear: '__clear__',
+  reboot: '__reboot__',
+};
+
+let adminHistory=[], adminHistIdx=-1;
+const adminTerm = document.getElementById('admin-term');
+
+function adminTermKey(e) {
+  const inp = document.getElementById('admin-term-input');
+  if (e.key === 'Enter') {
+    const cmd = inp.value.trim();
+    adminTerm.textContent += `root@rhfos:~# ${cmd}\n`;
+    if (cmd) {
+      adminHistory.unshift(cmd);
+      adminHistIdx = -1;
+      const fn = adminCmds[cmd];
+      if (fn === '__clear__') { adminTerm.textContent = ''; }
+      else if (fn === '__reboot__') {
+        adminTerm.textContent += 'Initiating reboot...\n';
+        setTimeout(()=>location.reload(),1200);
+      } else if (typeof fn === 'function') {
+        adminTerm.textContent += fn() + '\n';
+      } else if (fn) {
+        adminTerm.textContent += fn + '\n';
+      } else {
+        adminTerm.textContent += `bash: ${cmd}: command not found\n`;
+      }
+    }
+    adminTerm.textContent += '\n';
+    inp.value = '';
+    adminTerm.scrollTop = adminTerm.scrollHeight;
+  } else if (e.key==='ArrowUp') {
+    adminHistIdx = Math.min(adminHistIdx+1, adminHistory.length-1);
+    inp.value = adminHistory[adminHistIdx]||'';
+  } else if (e.key==='ArrowDown') {
+    adminHistIdx = Math.max(adminHistIdx-1,-1);
+    inp.value = adminHistIdx===-1?'':adminHistory[adminHistIdx];
+  }
+}
+
+// ── BROADCAST
+function sendBroadcast() {
+  const msg = document.getElementById('bc-msg').value.trim();
+  const type = document.getElementById('bc-type').value;
+  if (!msg) return;
+  const r = document.getElementById('bc-result');
+  r.textContent = `✓ Broadcast [${type.toUpperCase()}] sent: "${msg}"`;
+  addLog('INFO', `Admin broadcast: ${msg}`);
+  setTimeout(()=>r.textContent='',3000);
+}
+
+// ── SETTINGS
+function saveSettings() {
+  document.getElementById('settings-result').textContent = '✓ Settings saved successfully';
+  setTimeout(()=>document.getElementById('settings-result').textContent='',3000);
+}
+
+// ── USERS
+function addUser() {
+  const name = prompt('Enter username:');
+  if (!name) return;
+  const tbody = document.getElementById('user-table');
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${name}</td>
+    <td><span class="tag online">USER</span></td>
+    <td><span class="tag offline">OFFLINE</span></td>
+    <td>Just now</td>
+    <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:10px;">Edit</button></td>`;
+  tbody.appendChild(row);
+  document.getElementById('stat-users').textContent =
+    parseInt(document.getElementById('stat-users').textContent) + 1;
+  addLog('INFO', `New user created: ${name}`);
+}
+
+function rebootOS() {
+  if (confirm('Reboot RHF OS?')) {
+    addLog('WARN','Admin initiated reboot...');
+    setTimeout(()=>location.reload(),1500);
+  }
+}
+
+// Focus terminal input when terminal page opens
+document.getElementById('page-terminal').addEventListener('click', ()=>{
+  document.getElementById('admin-term-input').focus();
+});
+</script>
+</body>
+</html>
