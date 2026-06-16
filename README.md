@@ -39,11 +39,11 @@ bash install.sh
 Tunggu sampai selesai (butuh internet, ~5-10 menit).
 ### KETIKA GAGAL 
 ### Step 3 — Jalankan installer
-cp ~/storage/shared/Download/install.sh ~/rhfos/
+```cp ~/storage/shared/Download/install.sh ~/rhfos/
 cp ~/storage/shared/Download/rhfos.sh ~/rhfos/
 cd ~/rhfos
 chmod +x install.sh rhfos.sh
-bash install.sh
+bash install.sh```
 
 
 ### Step 4 — Boot RHF OS
